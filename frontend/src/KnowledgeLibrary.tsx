@@ -103,6 +103,8 @@ export function importError(data: {
           code?: string;
           advice?: string;
           worker_exit_code?: number;
+          object_type?: string;
+          pdf_page?: number;
         })
       : data;
   const message =
@@ -121,6 +123,10 @@ export function importError(data: {
     "worker_exit_code" in payload &&
       payload.worker_exit_code != null &&
       `进程退出码：${payload.worker_exit_code}`,
+    "object_type" in payload &&
+      payload.object_type &&
+      `对象类别：${payload.object_type}`,
+    "pdf_page" in payload && payload.pdf_page && `PDF页码：${payload.pdf_page}`,
     payload.advice,
   ]
     .filter(Boolean)
@@ -794,7 +800,7 @@ export default function KnowledgeLibrary() {
                 rel="noopener noreferrer"
                 href={`/api/library/documents/${preview.id}/original#page=${preview.page}`}
               >
-                打开原 PDF ↗
+                原PDF安全预览 ↗
               </a>
             </div>
             {pageError && (

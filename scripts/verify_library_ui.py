@@ -179,10 +179,10 @@ with tempfile.TemporaryDirectory() as directory, sync_playwright() as p:
     ).wait_for()
     citation = page.locator(".citation").filter(has_text="self-authored-demo")
     assert "#page=3" in citation.get_by_role(
-        "link", name="打开原 PDF 第3页"
+        "link", name="查看原 PDF 第3页"
     ).get_attribute("href")
     with page.expect_popup() as popup:
-        citation.get_by_role("link", name="打开原 PDF 第3页").click()
+        citation.get_by_role("link", name="查看原 PDF 第3页").click()
     popup.value.wait_for_load_state("domcontentloaded")
     assert "#page=3" in popup.value.url
     assert sent and not errors, errors

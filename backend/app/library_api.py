@@ -18,6 +18,8 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 from . import library_store as store
+from .pdf_policy import safe_failure, MESSAGES, NOTE_CODES, SCOPES
+from .pdf_viewer import passive_viewer
 
 router = APIRouter(prefix="/api/library")
 MAX_BYTES = 100 * 1024 * 1024
@@ -267,11 +269,15 @@ async def upload(
             if existing:
                 raise HTTPException(409, f"重复文件：已导入“{existing['title']}”。")
 
-            def precheck_error(code, advice, exit_code=None):
+            def precheck_error(
+                code, advice, exit_code=None, object_type=None, pdf_page=None
+            ):
                 return HTTPException(
                     422,
                     {
-                        "message": "PDF预检未通过，尚未登记教材。",
+                        "message": MESSAGES.get(code, "PDF预检未通过，尚未登记教材。"),
+                        "object_type": object_type,
+                        "pdf_page": pdf_page,
                         "stage": "pdf_precheck",
                         "code": code,
                         "advice": advice,
@@ -292,6 +298,22 @@ async def upload(
                     "本机PDF预检进程未能启动。请确认使用项目虚拟环境安装依赖后重启后端。",
                 ) from None
             if result.returncode:
+                try:
+                    failure = (
+                        safe_failure(json.loads(result.stdout).get("error"))
+                        if len(result.stdout) <= 16384
+                        else None
+                    )
+                except (ValueError, AttributeError, TypeError):
+                    failure = None
+                if failure:
+                    raise precheck_error(
+                        failure["code"],
+                        failure["advice"],
+                        result.returncode,
+                        failure["object_type"],
+                        failure["pdf_page"],
+                    )
                 code = (
                     "PDF_WORKER_TERMINATED"
                     if result.returncode < 0
@@ -303,7 +325,8 @@ async def upload(
                     result.returncode,
                 )
             try:
-                pages = json.loads(result.stdout)["pages"]
+                inspection = json.loads(result.stdout)
+                pages = inspection["pages"]
                 if type(pages) is not int or not 1 <= pages <= 1500:
                     raise ValueError()
             except (ValueError, KeyError, TypeError):
@@ -349,7 +372,25 @@ async def upload(
                         ),
                     )
             jobs.add(doc_id)
-            return {"id": doc_id, "total_pages": pages, "status": "queued"}
+            objects = inspection.get("objects", [])
+            objects = objects if isinstance(objects, list) else []
+            notes = [
+                n
+                for n in objects
+                if isinstance(n, dict)
+                and isinstance(n.get("code"), str)
+                and isinstance(n.get("object_type"), str)
+                and n.get("code") in NOTE_CODES
+                and n.get("object_type") in SCOPES
+                and type(n.get("count")) is int
+                and 0 < n["count"] <= 20000
+            ][:64]
+            return {
+                "id": doc_id,
+                "total_pages": pages,
+                "status": "queued",
+                "policy_objects": notes,
+            }
         finally:
             path.unlink(missing_ok=True)
 
@@ -552,14 +593,9 @@ def page_image(doc_id: str, page: int):
 
 @router.get("/documents/{doc_id}/original")
 def original(doc_id: str):
-    get_document(doc_id)
-    return FileResponse(
-        store.pdf_path(doc_id),
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": 'inline; filename="local-textbook.pdf"',
-            "Cache-Control": "no-store",
-            "X-Content-Type-Options": "nosniff",
-            "Content-Security-Policy": "sandbox; default-src 'none'",
-        },
-    )
+    item = get_document(doc_id)
+    if not store.pdf_path(doc_id).is_file():
+        raise HTTPException(404, "本机PDF原件不存在。")
+    # No PDF bytes, scripts, form widgets, attachments or URLs reach the browser.
+    # Existing #page=N citations continue to point to their original page number.
+    return passive_viewer(doc_id, item["title"], item["total_pages"])

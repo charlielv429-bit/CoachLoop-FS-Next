@@ -383,7 +383,7 @@ function App() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  打开原 PDF 第{s.pdf_page}页 ↗
+                                  查看原 PDF 第{s.pdf_page}页 ↗
                                 </a>
                                 <a
                                   style={{ marginLeft: 14 }}

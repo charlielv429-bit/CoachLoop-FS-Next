@@ -19,47 +19,59 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def classify(error):
-    message = str(error).lower()
-    if "加密" in message or "encrypt" in message or "password" in message:
-        return "PDF_ENCRYPTED", "使用你有权解密的本机副本；不要移除安全校验。"
-    if "1500" in message:
-        return "PDF_PAGE_LIMIT", "在本机保留原件并拆分为不超过1500页的副本。"
-    if any(word in message for word in ("主动", "脚本", "表单", "附件")):
-        return (
-            "PDF_ACTIVE_CONTENT_BLOCKED",
-            "文件触发主动动作、表单或附件规则；需检查具体对象后再判断，不能关闭所有检查。",
-        )
-    if any(
-        word in message
-        for word in ("xref", "trailer", "startxref", "eof", "pdf header")
-    ):
+    # Never inspect or print exception strings: parser errors can contain source data.
+    kind = type(error).__name__
+    if kind in ("FileNotDecryptedError", "WrongPasswordError"):
+        return "PDF_ENCRYPTED", "请使用有权解密的本机副本。"
+    if kind in ("PdfReadError", "PdfStreamError", "EmptyFileError"):
         return (
             "PDF_STRUCTURE_REJECTED",
-            "旧PDF的交叉引用或文件结构不被当前严格解析器接受；保留原件和本次诊断，待兼容性修复。",
+            "严格解析失败；保留原件及本次代码，不关闭结构检查。",
         )
     if isinstance(error, MemoryError):
-        return "PDF_MEMORY_LIMIT", "进程达到资源限制；保留原件，尝试较小的本机副本。"
+        return "PDF_RESOURCE_LIMIT", "资源限制触发；保留原件，尝试较小的授权副本。"
     return (
-        "PDF_PARSER_EXCEPTION",
-        "解析失败，需结合异常类型在受控进程中复现；不要上传全文或关闭检查。",
+        "PDF_PARSE_ERROR",
+        "无法可靠解析；请确认项目依赖完整，回传固定代码和异常类型，不回传正文。",
     )
 
 
 def child(pdf):
+    PDFPolicyError = ()
     sys.path.insert(0, str(ROOT / "backend"))
     try:
         from app.pdf_worker import inspect, limits
+        from app.pdf_policy import PDFPolicyError
 
         limits()
         data = inspect(str(pdf))  # Exactly the current production precheck.
-        print(json.dumps({"code": "PDF_PRECHECK_OK", "pages": data["pages"]}))
+        print(
+            json.dumps(
+                {
+                    "code": "PDF_PRECHECK_OK",
+                    "object_type": "document",
+                    "pages": data["pages"],
+                    "objects": data.get("objects", []),
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
     except Exception as error:
+        if isinstance(error, PDFPolicyError):
+            print(
+                json.dumps(
+                    {**error.diagnostic(), "exception_type": type(error).__name__},
+                    ensure_ascii=False,
+                )
+            )
+            return 1
         code, advice = classify(error)
         print(
             json.dumps(
                 {
                     "code": code,
+                    "object_type": "document",
                     "exception_type": type(error).__name__,
                     "advice": advice,
                 },
@@ -177,6 +189,16 @@ def main():
     print("代码=" + result["code"])
     if "pages" in result:
         print(f"预检页数={result['pages']}；这不等于已导入、OCR完成或已建立索引。")
+    if "object_type" in result:
+        print("对象类别=" + result["object_type"])
+    if result.get("pdf_page") is not None:
+        print("对象所在PDF页码=" + str(result["pdf_page"]))
+    for item in result.get("objects", []):
+        print(
+            f"被动对象：代码={item['code']} 对象类别={item['object_type']} 数量={item['count']}（隔离或忽略，不执行）"
+        )
+    if result.get("code") == "PDF_PRECHECK_OK":
+        print("建议=可在本机网页尝试导入；通过预检不等于OCR、索引或专业审核完成。")
     if "exception_type" in result:
         print("异常类型=" + result["exception_type"])
     if "advice" in result:

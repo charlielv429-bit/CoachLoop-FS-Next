@@ -56,7 +56,8 @@ def test_real_pdf_import_index_search_page_and_privacy(monkeypatch):
             assert actual["pdf_page"] == expected
             assert client.get(actual["preview_url"]).status_code == 200
         assert client.get(hit["preview_url"]).headers["content-type"] == "image/png"
-        assert client.get(hit["original_url"].split("#")[0]).content == make_pdf()
+        assert client.get(hit["original_url"].split("#")[0]).headers['content-type'].startswith('text/html')
+        assert store.pdf_path(doc_id).read_bytes() == make_pdf()
         assert import_pdf(client).status_code == 409
         preview = client.post("/api/evidence", json={"query": "单足侧蹬冰"}).json()
         assert preview["results"] and preview["has_documents"]

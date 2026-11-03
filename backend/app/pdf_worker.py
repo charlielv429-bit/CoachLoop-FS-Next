@@ -9,6 +9,13 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pypdf.errors import PdfReadError
+
+
+if __package__:
+    from .pdf_policy import PDFPolicyError, Policy
+else:
+    from pdf_policy import PDFPolicyError, Policy
 
 
 def limits():
@@ -31,7 +38,7 @@ def render(path, page, destination, scale=1.4):
             if not all(math.isfinite(n) and 0 < n < 20000 for n in (width, height)):
                 raise ValueError("Unsupported page dimensions")
             scale = min(scale, math.sqrt(8_000_000 / (width * height)))
-            bitmap = item.render(scale=scale)
+            bitmap = item.render(scale=scale, may_draw_forms=False, draw_annots=False)
             try:
                 raw = bitmap.to_pil()  # Pillow is explicitly pinned by this project.
                 raw.convert("RGB").save(destination, format="PNG")
@@ -46,34 +53,12 @@ def inspect(path):
 
     reader = PdfReader(path, strict=True)
     if reader.is_encrypted:
-        raise ValueError("不支持加密 PDF，请在本机使用有权解密的副本。")
+        raise PDFPolicyError("PDF_ENCRYPTED")
     count = len(reader.pages)
     if not 1 <= count <= 1500:
-        raise ValueError("每份 PDF 需为 1–1500 页。")
-    catalog = reader.trailer["/Root"]
-    names = catalog.get("/Names", {})
-    if hasattr(names, "get_object"):
-        names = names.get_object()
-    if any(key in catalog for key in ("/OpenAction", "/AA", "/AcroForm")) or any(
-        key in names for key in ("/JavaScript", "/EmbeddedFiles")
-    ):
-        raise ValueError("不支持主动脚本、表单或附件 PDF。")
-    for page in reader.pages:
-        if "/AA" in page:
-            raise ValueError("不支持页面主动动作。")
-        for annotation in page.get("/Annots", []):
-            annotation = annotation.get_object()
-            action = annotation.get("/A", {})
-            if hasattr(action, "get_object"):
-                action = action.get_object()
-            if "/AA" in annotation or action.get("/S") in (
-                "/JavaScript",
-                "/Launch",
-                "/SubmitForm",
-                "/ImportData",
-            ):
-                raise ValueError("不支持主动动作 PDF。")
-    return {"pages": count}
+        raise PDFPolicyError("PDF_PAGE_LIMIT")
+    notes = Policy(reader).check()
+    return {"pages": count, "policy": "passive-raster-preview-v1", "objects": notes}
 
 
 def batch(path, start, end, ocr, outdir):
@@ -209,7 +194,24 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except PDFPolicyError as error:
+        print(json.dumps({"error": error.diagnostic()}, ensure_ascii=False))
+        sys.exit(1)
+    except (PdfReadError, MemoryError) as error:
+        code = (
+            "PDF_RESOURCE_LIMIT"
+            if isinstance(error, MemoryError)
+            else "PDF_STRUCTURE_REJECTED"
+        )
+        print(
+            json.dumps({"error": PDFPolicyError(code).diagnostic()}, ensure_ascii=False)
+        )
+        sys.exit(1)
     except Exception:
-        # Do not echo document contents, host paths, or parser exception payloads.
-        print("PDF处理失败：文件可能加密、损坏、过大或超出安全限制。", file=sys.stderr)
+        print(
+            json.dumps(
+                {"error": PDFPolicyError("PDF_PARSE_ERROR").diagnostic()},
+                ensure_ascii=False,
+            )
+        )
         sys.exit(1)
