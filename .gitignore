@@ -39,3 +39,14 @@ recordings/
 *.mp4
 *.mov
 *.avi
+
+# Private local knowledge library and document processing outputs
+.local-library/
+*.pdf
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.part

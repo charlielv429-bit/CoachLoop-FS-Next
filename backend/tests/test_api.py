@@ -58,7 +58,7 @@ def test_verified_retrieval(monkeypatch):
 
 
 def test_chinese_and_multiturn_mock(monkeypatch):
-    monkeypatch.setattr(main,'retrieve',lambda _: [])
+    monkeypatch.setattr(main,'retrieve',lambda _, **kwargs: [])
     captured=mock_model(monkeypatch,answer())
     messages=[{'role':'user','content':'如何练习平衡？'},{'role':'assistant','content':'先在教练现场指导下练习平衡。'},{'role':'user','content':'那下一步呢？'}]
     r=client.post('/api/chat',json={'messages':messages})
@@ -77,7 +77,7 @@ def test_reject_fabricated_citations(monkeypatch,data):
 
 def test_verified_citation_metadata(monkeypatch):
     source={'id':'fixture','title':'测试书','authors':'测试作者','pages':'PDF 39','source_type':'测试','verification_status':'verified','content':'测试事实'}
-    monkeypatch.setattr(main,'retrieve',lambda _: [source])
+    monkeypatch.setattr(main,'retrieve',lambda _, **kwargs: [source])
     mock_model(monkeypatch,answer(textbook_facts=['测试事实'],citation_ids=['fixture']))
     r=client.post('/api/chat',json={'messages':[{'role':'user','content':'测试'}]})
     assert r.status_code==200 and r.json()['citations'][0]['pages']=='PDF 39'
@@ -110,7 +110,7 @@ def test_timeout(monkeypatch):
 
 def test_pending_citation_boundary(monkeypatch):
     source=knowledge.sources()[3]
-    monkeypatch.setattr(main,'retrieve',lambda _: [source])
+    monkeypatch.setattr(main,'retrieve',lambda _, **kwargs: [source])
     mock_model(monkeypatch,answer(textbook_facts=['摘要介绍单足侧蹬冰。'],citation_ids=[source['id']]))
     r=client.post('/api/chat',json={'messages':[{'role':'user','content':'单足侧蹬冰'}]})
     assert r.status_code==200

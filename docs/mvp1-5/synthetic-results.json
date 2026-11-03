@@ -1,0 +1,127 @@
+{
+  "dataset": "Self-authored synthetic PDFs only; NOT the seven textbooks",
+  "model": "MOCKED; no Gemini call",
+  "documents": [
+    {
+      "title": "self-authored-demo",
+      "pages": 3,
+      "searchable": 3,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-2",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-1",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-5",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-4",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-3",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-6",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "synthetic-volume-7",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 0,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "complete"
+    },
+    {
+      "title": "self-authored-scan",
+      "pages": 1,
+      "searchable": 1,
+      "ocr_pages": 1,
+      "ocr_failed": 0,
+      "ocr_low_quality": 0,
+      "failed": 0,
+      "missing": 0,
+      "status": "needs_review"
+    }
+  ],
+  "citation_sample": {
+    "checked": 3,
+    "correct": 3,
+    "samples": [
+      {
+        "phrase": "平衡练习",
+        "expected_pdf_page": 1,
+        "actual_pdf_page": 1
+      },
+      {
+        "phrase": "左前压步",
+        "expected_pdf_page": 2,
+        "actual_pdf_page": 2
+      },
+      {
+        "phrase": "单足侧蹬冰",
+        "expected_pdf_page": 3,
+        "actual_pdf_page": 3
+      }
+    ],
+    "note": "All three demo page-specific phrases checked against generated original pages by API tests; browser opened matching page 3."
+  }
+}
