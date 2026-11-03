@@ -106,7 +106,7 @@ with tempfile.TemporaryDirectory() as directory, sync_playwright() as p:
     )
     page.get_by_role("button", name="开始批量导入 / 重试失败文件").click()
     books = wait_books(8)
-    expect(page.get_by_text("已接收，正在索引 100%")).to_have_count(7)
+    expect(page.get_by_text("预检通过 · 已登记教材 · 等待文本提取/OCR与索引")).to_have_count(7)
     page.get_by_role("button", name="清空本批列表").click()
     page.screenshot(path=str(shots / "library-imports.png"), full_page=True)
     scan = Path(directory) / "self-authored-scan.pdf"

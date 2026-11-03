@@ -10,13 +10,13 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Literal
 
 from .knowledge import retrieve, sources
 from . import library_store
 from .library_api import router as library_router, jobs
+from .local_security import LOOPBACK_HOSTS, LocalCORSMiddleware, local_origin
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
@@ -41,19 +41,28 @@ async def local_guard(request: Request, call_next):
 
     host = request.url.hostname
     origin = request.headers.get("origin")
-    from urllib.parse import urlparse
-
-    # Local development only: reject DNS rebinding and cross-site browser mutations.
-    if host not in ("localhost", "127.0.0.1", "testserver"):
-        return JSONResponse({"detail": "仅支持本机访问。"}, status_code=403)
-    if origin:
-        parsed = urlparse(origin)
-        if (
-            parsed.scheme != "http"
-            or parsed.hostname not in ("localhost", "127.0.0.1")
-            or parsed.port not in (5173, 5174)
-        ):
-            return JSONResponse({"detail": "拒绝非本机页面请求。"}, status_code=403)
+    # No forwarded headers or DNS lookups grant access. Vite may select any free
+    # local port, so trust only literal loopback hosts rather than two fixed ports.
+    if host not in LOOPBACK_HOSTS:
+        return JSONResponse(
+            {
+                "detail": "仅支持本机访问。",
+                "stage": "origin_check",
+                "code": "HOST_NOT_LOOPBACK",
+                "advice": "请从 localhost、127.0.0.1 或 [::1] 的本机页面访问。",
+            },
+            status_code=403,
+        )
+    if origin and not local_origin(origin):
+        return JSONResponse(
+            {
+                "detail": "拒绝非本机页面请求。",
+                "stage": "origin_check",
+                "code": "ORIGIN_NOT_LOOPBACK",
+                "advice": "请使用本机 Vite 地址；不要通过局域网IP或远程代理打开教材页面。",
+            },
+            status_code=403,
+        )
     response = await call_next(request)
     if request.url.path.startswith("/api/library"):
         response.headers["Cache-Control"] = "no-store"
@@ -61,9 +70,9 @@ async def local_guard(request: Request, call_next):
 
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["GET", "POST"],
+    LocalCORSMiddleware,
+    allow_origins=[],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
 recent = defaultdict(deque)

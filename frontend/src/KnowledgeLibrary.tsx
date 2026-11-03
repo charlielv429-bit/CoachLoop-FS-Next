@@ -48,6 +48,7 @@ type ImportItem = {
   ocr: boolean;
   status: string;
   progress: number;
+  phase: "selected" | "uploading" | "prechecking" | "queued" | "failed";
 };
 type Page = {
   pdf_page: number;
@@ -87,6 +88,44 @@ export const textLabel = (s?: string) =>
   })[s ?? ""] ??
   s ??
   "";
+export function importError(data: {
+  detail?: unknown;
+  stage?: string;
+  code?: string;
+  advice?: string;
+}): string {
+  const detail = data.detail;
+  const payload =
+    detail && typeof detail === "object"
+      ? (detail as {
+          message?: string;
+          stage?: string;
+          code?: string;
+          advice?: string;
+          worker_exit_code?: number;
+        })
+      : data;
+  const message =
+    typeof detail === "string"
+      ? detail
+      : "message" in payload && typeof payload.message === "string"
+        ? payload.message
+        : "导入请求失败。";
+  const stage = { origin_check: "页面来源校验", pdf_precheck: "PDF预检" }[
+    payload.stage ?? ""
+  ];
+  return [
+    message,
+    stage && `阶段：${stage}`,
+    payload.code && `错误代码：${payload.code}`,
+    "worker_exit_code" in payload &&
+      payload.worker_exit_code != null &&
+      `进程退出码：${payload.worker_exit_code}`,
+    payload.advice,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const r = await fetch(path, options);
   let data;
@@ -95,12 +134,7 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   } catch {
     throw Error("服务响应异常，请确认后端已启动。");
   }
-  if (!r.ok)
-    throw Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : "内容格式有误，请检查后重试。",
-    );
+  if (!r.ok) throw Error(importError(data));
   return data as T;
 }
 const json = (method: string, body: unknown) => ({
@@ -209,6 +243,7 @@ export default function KnowledgeLibrary() {
         ocr: false,
         status: "待导入",
         progress: 0,
+        phase: "selected" as const,
       })),
     ]);
   }
@@ -223,7 +258,7 @@ export default function KnowledgeLibrary() {
     for (let i = 0; i < items.length; i++) {
       if (!alive.current) break;
       const item = items[i];
-      if (item.status === "已接收，正在索引") continue;
+      if (item.phase === "queued") continue;
       if (!item.title.trim()) {
         update(i, { status: "请填写教材名" });
         continue;
@@ -245,24 +280,39 @@ export default function KnowledgeLibrary() {
             if (alive.current && e.lengthComputable)
               update(i, {
                 progress: Math.round((e.loaded / e.total) * 100),
-                status: "正在上传到本机",
+                status: "正在传输到本机（尚未预检或索引）",
+                phase: "uploading",
               });
           };
+          xhr.upload.onload = () => {
+            if (alive.current)
+              update(i, {
+                progress: 100,
+                phase: "prechecking",
+                status: "文件传输完成 · 正在等待PDF预检（尚未登记教材）",
+              });
+          };
+          xhr.timeout = 180000;
+          xhr.ontimeout = () =>
+            reject(
+              Error(
+                "请求等待超时 [UPLOAD_REQUEST_TIMEOUT]。请先刷新教材列表，若未登记，再用只读诊断定位预检阶段。",
+              ),
+            );
           xhr.onload = () => {
             let data;
             try {
               data = JSON.parse(xhr.responseText);
             } catch {
-              reject(Error("上传响应无效。"));
+              reject(
+                Error(
+                  "本机代理未返回有效后端响应 [PROXY_RESPONSE_INVALID]。请确认8001后端已启动，Vite的BACKEND_PORT指向同一端口。",
+                ),
+              );
               return;
             }
             if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else
-              reject(
-                Error(
-                  typeof data.detail === "string" ? data.detail : "导入失败。",
-                ),
-              );
+            else reject(Error(importError(data)));
           };
           xhr.onerror = () => reject(Error("本机连接失败，文件未完成接收。"));
           xhr.onabort = () =>
@@ -270,10 +320,15 @@ export default function KnowledgeLibrary() {
           xhr.send(item.file);
         });
         if (!alive.current) break;
-        update(i, { status: "已接收，正在索引", progress: 100 });
+        update(i, {
+          status: "预检通过 · 已登记教材 · 等待文本提取/OCR与索引",
+          progress: 100,
+          phase: "queued",
+        });
         await refresh();
       } catch (e) {
-        if (alive.current) update(i, { status: (e as Error).message });
+        if (alive.current)
+          update(i, { status: (e as Error).message, phase: "failed" });
       }
     }
     if (alive.current) setUploading(false);
@@ -455,7 +510,7 @@ export default function KnowledgeLibrary() {
                 对扫描页启用本机中文 OCR
               </label>
               <small>
-                {item.status} {item.progress > 0 && `${item.progress}%`}
+                文件传输 {item.progress}% · {item.status}
               </small>
             </article>
           ))}
@@ -502,8 +557,8 @@ export default function KnowledgeLibrary() {
                       : book.status === "unindexed"
                         ? "索引已清除 · 原件保留"
                         : book.status === "error"
-                        ? "处理中断"
-                        : "分页处理完成 · 有待核对页"}
+                          ? "处理中断"
+                          : "分页处理完成 · 有待核对页"}
               </span>
             </div>
             <p>
@@ -586,13 +641,28 @@ export default function KnowledgeLibrary() {
               >
                 重建机器索引
               </button>
-              <button disabled={working || ["processing", "queued"].includes(book.status)} onClick={() => {
-  if (confirm("清除正文、页码核对记录及索引，保留原PDF？云端许可将关闭；之后可点击继续处理重新建立索引。"))
-    void action(async () => {
-      await api(`/api/library/documents/${book.id}/index`, { method: "DELETE" });
-      setResults([]); setSearched(false); setPreview(null);
-    });
-}}>清除索引，保留PDF</button>
+              <button
+                disabled={
+                  working || ["processing", "queued"].includes(book.status)
+                }
+                onClick={() => {
+                  if (
+                    confirm(
+                      "清除正文、页码核对记录及索引，保留原PDF？云端许可将关闭；之后可点击继续处理重新建立索引。",
+                    )
+                  )
+                    void action(async () => {
+                      await api(`/api/library/documents/${book.id}/index`, {
+                        method: "DELETE",
+                      });
+                      setResults([]);
+                      setSearched(false);
+                      setPreview(null);
+                    });
+                }}
+              >
+                清除索引，保留PDF
+              </button>
               <button
                 className="danger"
                 disabled={

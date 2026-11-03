@@ -31,7 +31,7 @@ def wait_finished(client, doc_id):
 
 def test_real_pdf_import_index_search_page_and_privacy(monkeypatch):
     monkeypatch.delenv("LLM_API_KEY", raising=False)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         response = import_pdf(client)
         assert response.status_code == 201, response.text
         doc_id = response.json()["id"]
@@ -102,7 +102,7 @@ def test_real_pdf_import_index_search_page_and_privacy(monkeypatch):
 def test_bad_encrypted_oversize_and_origin(monkeypatch):
     from app import library_api
 
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         assert import_pdf(client, b"not a PDF").status_code == 422
         assert import_pdf(client, make_pdf(encrypted=True)).status_code == 422
         monkeypatch.setattr(library_api, "MAX_BYTES", 64)
@@ -137,7 +137,7 @@ def test_bad_encrypted_oversize_and_origin(monkeypatch):
 
 
 def test_resume_and_rebuild_preserve_human_checks():
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client).json()["id"]
         wait_finished(client, doc_id)
         checked = {
@@ -186,7 +186,7 @@ def test_scan_and_low_quality_not_silently_indexed():
     w = PdfWriter()
     w.add_blank_page(width=595, height=842)
     w.write(out)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client, out.getvalue()).json()["id"]
         book = wait_finished(client, doc_id)
         assert (
@@ -226,7 +226,7 @@ def test_scan_and_low_quality_not_silently_indexed():
 
 
 def test_seven_generated_pdfs_batch_import():
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         ids = []
         for i in range(7):
             r = import_pdf(
@@ -247,7 +247,7 @@ def test_seven_generated_pdfs_batch_import():
 def test_chat_sends_only_approved_excerpt(monkeypatch):
     from test_api import mock_model, answer
 
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client).json()["id"]
         wait_finished(client, doc_id)
         client.patch(
@@ -304,7 +304,7 @@ def test_actual_offline_chinese_ocr():
         data = make_scan()
     except FileNotFoundError:
         pytest.skip("Optional generated scan requires a local CJK font")
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         response = client.post(
             "/api/library/documents",
             params={"title": "自建授权扫描测试", "ocr": True},
@@ -331,12 +331,12 @@ def test_active_content_is_rejected():
     writer.add_blank_page(width=595, height=842)
     writer.add_js('app.alert("test");')
     writer.write(output)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         assert import_pdf(client, output.getvalue()).status_code == 422
 
 
 def test_printed_page_requires_explicit_check_and_preview_bounds():
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client).json()["id"]
         wait_finished(client, doc_id)
         response = client.put(
@@ -379,7 +379,7 @@ def test_real_pdf_outline_chapter_is_traceable(tmp_path):
     writer.add_outline_item("自建章节：侧蹬冰", 2)
     output = BytesIO()
     writer.write(output)
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client, output.getvalue()).json()["id"]
         wait_finished(client, doc_id)
         page = client.get(f"/api/library/documents/{doc_id}/pages/3").json()
@@ -411,7 +411,7 @@ def test_summary_dedup_uses_pdf_page_not_printed_page():
 
 
 def test_clear_index_preserves_original_and_can_reprocess():
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1") as client:
         doc_id = import_pdf(client).json()["id"]
         wait_finished(client, doc_id)
         client.patch(

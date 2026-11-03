@@ -266,14 +266,50 @@ async def upload(
                 ).fetchone()
             if existing:
                 raise HTTPException(409, f"重复文件：已导入“{existing['title']}”。")
+
+            def precheck_error(code, advice, exit_code=None):
+                return HTTPException(
+                    422,
+                    {
+                        "message": "PDF预检未通过，尚未登记教材。",
+                        "stage": "pdf_precheck",
+                        "code": code,
+                        "advice": advice,
+                        "worker_exit_code": exit_code,
+                    },
+                )
+
             try:
                 result = await asyncio.to_thread(run_worker, ["inspect", path], 25)
-                if result.returncode:
-                    raise ValueError()
+            except subprocess.TimeoutExpired:
+                raise precheck_error(
+                    "PDF_PRECHECK_TIMEOUT",
+                    "预检达到25秒时限，尚未进入OCR。请保留原件，运行只读诊断并回传代码；不要关闭解析限制。",
+                ) from None
+            except OSError:
+                raise precheck_error(
+                    "PDF_WORKER_START_FAILED",
+                    "本机PDF预检进程未能启动。请确认使用项目虚拟环境安装依赖后重启后端。",
+                ) from None
+            if result.returncode:
+                code = (
+                    "PDF_WORKER_TERMINATED"
+                    if result.returncode < 0
+                    else "PDF_PRECHECK_REJECTED"
+                )
+                raise precheck_error(
+                    code,
+                    "原始解析错误可能包含私有内容，页面不会直接显示。请使用只读诊断脚本定位具体规则；不要重新上传整个文件到模型。",
+                    result.returncode,
+                )
+            try:
                 pages = json.loads(result.stdout)["pages"]
-            except (ValueError, KeyError, subprocess.TimeoutExpired, OSError):
-                raise HTTPException(
-                    422, "PDF 无法安全解析：可能加密、损坏、超过1500页或超出资源限制。"
+                if type(pages) is not int or not 1 <= pages <= 1500:
+                    raise ValueError()
+            except (ValueError, KeyError, TypeError):
+                raise precheck_error(
+                    "PDF_WORKER_RESPONSE_INVALID",
+                    "预检进程没有返回有效页数。请重启后端并运行只读诊断；原件与已有知识库不受影响。",
                 ) from None
             doc_id = uuid.uuid4().hex
             # Serialize final duplicate check + file registration.

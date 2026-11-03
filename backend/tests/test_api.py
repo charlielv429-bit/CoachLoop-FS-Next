@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app import main, knowledge
 
-client = TestClient(main.app)
+client = TestClient(main.app, base_url="http://127.0.0.1")
 
 @pytest.fixture(autouse=True)
 def reset(monkeypatch):
