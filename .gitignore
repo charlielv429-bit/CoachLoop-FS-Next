@@ -1,0 +1,41 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local credentials and machine-specific settings
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets/
+.secrets/
+
+# Local caches and editor/OS outputs
+.cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Private student data and local media (never part of the knowledge corpus)
+personal-data/
+student-data/
+private-data/
+uploads/
+recordings/
+*.mp4
+*.mov
+*.avi
