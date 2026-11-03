@@ -19,7 +19,8 @@ with sync_playwright() as p:
     page.get_by_role('button',name='发送问题').click()
     assert '尚未连接模型' in page.get_by_role('alert').inner_text()
     page.screenshot(path=str(ROOT/'docs/missing-api-key.png'),full_page=True)
-    page.get_by_role('button',name='专项资料库').click()
+    page.get_by_role('button',name='专项知识库').click()
+    page.get_by_text('原有摘要与课程资料',exact=False).click()
     assert '原PDF第39页／印刷29页' in page.inner_text('body')
     page.screenshot(path=str(ROOT/'docs/sources.png'),full_page=True)
     page.set_viewport_size({'width':390,'height':844})
@@ -35,6 +36,7 @@ with sync_playwright() as p:
     def chat(route):
         payloads.append(route.request.post_data_json)
         route.fulfill(json={'textbook_facts':['测试显示：摘要介绍逐步进行连续压步的练习。'],'suggestions':'【模拟测试响应】可与现场教练讨论分解练习。','limitations':'测试响应，非真实模型。教材摘要待专业审核。','citations':[status['sources'][3]],'model':'test-fixture'})
+    page.route('**/api/evidence',lambda route:route.fulfill(json={'results':[],'has_documents':False}))
     page.route('**/api/chat',chat)
     page.reload(wait_until='domcontentloaded')
     page.locator('.status').filter(has_text='已配置 · 待验证').wait_for()
