@@ -1,0 +1,137 @@
+[
+  {
+    "id": "B02-90",
+    "title": "花样滑冰",
+    "authors": "王树本",
+    "pages": "原PDF第90页／印刷76页",
+    "source_type": "用户核对扫描页的简短摘要",
+    "verification_status": "pending",
+    "scan_checked": true,
+    "content": "介绍压步（Crossover）的分类，包括前压步、后压步和左右方向。",
+    "note": "用户已查看原始扫描页；待专业教师审核，不是正式技术标准。"
+  },
+  {
+    "id": "B02-91",
+    "title": "花样滑冰",
+    "authors": "王树本",
+    "pages": "原PDF第91页／印刷77页",
+    "source_type": "用户核对扫描页的简短摘要",
+    "verification_status": "pending",
+    "scan_checked": true,
+    "content": "介绍左前压步，以逆时针方向为例；图29为左前压步连续动作（1–5）。",
+    "note": "用户已查看原始扫描页；待专业教师审核，不是正式技术标准。"
+  },
+  {
+    "id": "B02-92",
+    "title": "花样滑冰",
+    "authors": "王树本",
+    "pages": "原PDF第92页／印刷78页",
+    "source_type": "用户核对扫描页的简短摘要",
+    "verification_status": "pending",
+    "scan_checked": true,
+    "content": "介绍陆地侧走、扶支撑物原地姿势及冰上侧走等练习，图30、31与练习相关。",
+    "note": "用户已查看原始扫描页；待专业教师审核，不是正式技术标准。"
+  },
+  {
+    "id": "B02-93",
+    "title": "花样滑冰",
+    "authors": "王树本",
+    "pages": "原PDF第93页／印刷79页",
+    "source_type": "用户核对扫描页的简短摘要",
+    "verification_status": "pending",
+    "scan_checked": true,
+    "content": "介绍单足侧蹬冰、单次压步及逐步进行连续压步的练习，图32是单足侧蹬冰相关动作。",
+    "note": "用户已查看原始扫描页；待专业教师审核，不是正式技术标准。"
+  },
+  {
+    "id": "B03-39",
+    "title": "花样滑冰技法与指导",
+    "authors": "李乡状等",
+    "pages": "原PDF第39页／印刷29页",
+    "source_type": "用户核对扫描页的简短摘要",
+    "verification_status": "pending",
+    "scan_checked": true,
+    "content": "第三节前压步，以左前压步为例，描述上体方向、两脚侧蹬与收回衔接，并列出刀齿蹬冰、上下起伏、身体倾斜及两脚滑行距离等技术注意事项。该页没有编号动作图。",
+    "note": "用户已查看原始扫描页；待专业教师审核，不是正式技术标准。"
+  },
+  {
+    "id": "L01",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L01 冰上基础技能综合入门：安全、装备、跌倒起立、站立、平衡踏步、双足滑行。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L02",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L02 复习＋交替蹬冰滑行＋停止。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L03",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L03 复习＋单足平衡与重心转移。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L04",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L04 左前交叉步的蹬冰。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L05",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L05 左前交叉步完整动作练习。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L06",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L06 连续左前交叉步练习。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L07",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L07 基础级步法完整练习（一）。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  },
+  {
+    "id": "L08",
+    "title": "花样滑冰基础级步法：AI辅助教学与动作反馈",
+    "authors": "项目方",
+    "pages": null,
+    "source_type": "已确认课程设计",
+    "verification_status": "confirmed",
+    "content": "L08 基础级步法完整练习（二）＋教师评价反馈。 每课45分钟。",
+    "note": "已确定课程设计，不代表教材规定的官方等级动作组合。"
+  }
+]
